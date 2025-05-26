@@ -1,32 +1,36 @@
-const express = require('express')
-const app = express()
-const dotenv = require('dotenv')
-const body_parser = require('body-parser')
-const cors = require('cors')
-const db_connect = require('./utils/db')
+import express from "express";
+import dotenv from "dotenv";
+import bodyParser from "body-parser";
+import cors from "cors";
+import morgan from "morgan";
+import db_connect from "./src/utils/db.js";
+import authRoutes from "./src/routes/authRoutes.js";
+import newsRoute from "./src/routes/newsRoute.js";
 
-dotenv.config()
+dotenv.config();
 
+const app = express();
 
-app.use(body_parser.json())
+app.use(bodyParser.json());
+app.use(morgan("dev"));
 
-if (process.env.mode === 'production') {
-    app.use(cors())
+if (process.env.mode === "production") {
+  app.use(cors());
 } else {
-    app.use(cors({
-        origin: ["http://localhost:5173", "http://localhost:3000"]
-    }))
+  app.use(
+    cors({
+      origin: ["http://localhost:5173", "http://localhost:3000"],
+    })
+  );
 }
 
+app.use("/", authRoutes);
+app.use("/", newsRoute);
 
-app.use('/', require('./routes/authRoutes'))
-app.use('/', require('./routes/newsRoute'))
+app.get("/", (req, res) => res.send("Hello World!"));
 
+const port = process.env.port || 3000;
 
-app.get('/', (req, res) => res.send('Hello World!'))
+db_connect();
 
-const port = process.env.port
-
-db_connect()
-
-app.listen(port, () => console.log(`server is running on port ${port}!`))
+app.listen(port, () => console.log(`Server is running on port ${port}!`));
