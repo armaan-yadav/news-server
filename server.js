@@ -4,8 +4,8 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import morgan from "morgan";
 import db_connect from "./src/utils/db.js";
-import authRoutes from "./src/routes/authRoutes.js";
-import newsRoute from "./src/routes/newsRoute.js";
+import authRoutes from "./src/routes/auth.routes.js";
+import newsRoute from "./src/routes/news.routes.js";
 
 dotenv.config();
 

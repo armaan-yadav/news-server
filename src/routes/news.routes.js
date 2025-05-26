@@ -1,7 +1,8 @@
 import { Router } from "express";
-import authMiddleware from "../middlewares/auth.middleware.js";
-import newsControllers from "../controllers/newsController.js";
-import upload from "../middlewares/multer.middleware.js";
+import newsControllers from "../controllers/news.controllers.js";
+import authMiddleware from "../middlewares/auth.middlewares.js";
+import upload from "../middlewares/multer.middlewares.js";
+import categoriesControllers from "../controllers/categories.controllers.js";
 
 const router = Router();
 
@@ -44,11 +45,11 @@ router.get("/api/latest/news", newsControllers.get_latest_news);
 router.get("/api/images/news", newsControllers.get_images);
 router.get("/api/recent/news", newsControllers.get_recent_news);
 router.get("/api/news/details/:slug", newsControllers.get_news);
-router.get("/api/category/all", newsControllers.get_categories);
+router.get("/api/category/all", categoriesControllers.get_categories);
 router.get("/api/category/news/:category", newsControllers.get_category_news);
 router.get("/api/search/news", newsControllers.news_search);
 
 // common
-router.get("/api/category/all-name", newsControllers.getAllCategoryNames);
+router.get("/api/category/all-name", categoriesControllers.getAllCategoryNames);
 
 export default router;

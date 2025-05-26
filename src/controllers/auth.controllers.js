@@ -1,8 +1,8 @@
-import authModel from "../models/authModel.js";
+import authModel from "../models/auth.models.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-class authController {
+class AuthController {
   signup = async (req, res) => {
     const { name, email, password, category } = req.body;
 
@@ -136,5 +136,5 @@ class authController {
     }
   };
 }
-const authControllers = new authController();
-export default authControllers;
+const AuthControllers = new AuthController();
+export default AuthControllers;

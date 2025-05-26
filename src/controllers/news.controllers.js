@@ -1,14 +1,14 @@
 import { formidable } from "formidable";
 import { v2 as cloudinary } from "cloudinary";
-import newsModel from "../models/newsModel.js";
-import authModel from "../models/authModel.js";
-import galleryModel from "../models/galleryModel.js";
+import newsModel from "../models/news.models.js";
+import authModel from "../models/auth.models.js";
+import galleryModel from "../models/gallery.models.js";
 import mongoose from "mongoose";
 import moment from "moment";
 
 const { ObjectId } = mongoose.mongo;
 
-class newsController {
+class NewsController {
   add_news = async (req, res) => {
     console.log("add news called");
     const { id, name } = req.userInfo;
@@ -252,7 +252,6 @@ class newsController {
   };
 
   // website
-
   get_all_news = async (req, res) => {
     try {
       const category_news = await newsModel.aggregate([
@@ -340,30 +339,6 @@ class newsController {
     }
   };
 
-  get_categories = async (req, res) => {
-    try {
-      const categories = await newsModel.aggregate([
-        {
-          $group: {
-            _id: "$category",
-            count: { $sum: 1 },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            category: "$_id",
-            count: 1,
-          },
-        },
-      ]);
-      return res.status(200).json({ categories });
-    } catch (error) {
-      console.log(error.message);
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  };
-
   get_popular_news = async (req, res) => {
     console.log("asdsa");
     try {
@@ -377,7 +352,6 @@ class newsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   get_latest_news = async (req, res) => {
     try {
       const news = await newsModel
@@ -391,6 +365,7 @@ class newsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
+
   get_images = async (req, res) => {
     try {
       const images = await newsModel.aggregate([
@@ -417,22 +392,6 @@ class newsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
-  //common
-  getAllCategoryNames = async (req, res) => {
-    try {
-      const categoriesRaw = await newsModel.aggregate([
-        { $group: { _id: "$category" } },
-      ]);
-
-      const categories = categoriesRaw.map((item) => item._id);
-
-      return res.status(200).json({ categories });
-    } catch (error) {
-      console.log(error.message);
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  };
 }
-const newsControllers = new newsController();
-export default newsControllers;
+const NewsControllers = new NewsController();
+export default NewsControllers;
