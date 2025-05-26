@@ -11,6 +11,7 @@ dotenv.config();
 
 const app = express();
 
+// todo implement nodecache
 app.use(bodyParser.json());
 app.use(morgan("dev"));
 

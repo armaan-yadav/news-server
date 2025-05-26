@@ -1,10 +1,10 @@
-import { formidable } from "formidable";
 import { v2 as cloudinary } from "cloudinary";
-import newsModel from "../models/news.models.js";
-import authModel from "../models/auth.models.js";
-import galleryModel from "../models/gallery.models.js";
-import mongoose from "mongoose";
+import { formidable } from "formidable";
 import moment from "moment";
+import mongoose from "mongoose";
+import galleryModel from "../models/gallery.models.js";
+import newsModel from "../models/news.models.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const { ObjectId } = mongoose.mongo;
 
@@ -14,20 +14,9 @@ class NewsController {
     const { id, name } = req.userInfo;
     const form = formidable({});
 
-    cloudinary.config({
-      cloud_name: process.env.cloud_name,
-      api_key: process.env.api_key,
-      api_secret: process.env.api_secret,
-      secure: true,
-    });
-
     try {
-      const [fields, files] = await form.parse(req);
-      const { url } = await cloudinary.uploader.upload(
-        files.image[0].filepath,
-        { folder: "news-app/thumbails" }
-      );
-      const { title, description, subTitle, category } = fields;
+      const [fields] = await form.parse(req);
+      const { title, description, subTitle, category, image } = fields;
       const news = await newsModel.create({
         writerId: id,
         title: title[0].trim(),
@@ -37,7 +26,7 @@ class NewsController {
         description: description[0],
         date: moment().format("LL"),
         writerName: name,
-        image: url,
+        image: image[0].trim(),
       });
       console.log(news);
       return res.status(201).json({ message: "news add success", news });
@@ -46,7 +35,6 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   update_news = async (req, res) => {
     const { news_id } = req.params;
     const form = formidable({});
@@ -91,7 +79,6 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   update_news_update = async (req, res) => {
     const { role } = req.userInfo;
     const { news_id } = req.params;
@@ -110,7 +97,6 @@ class NewsController {
       return res.status(401).json({ message: "You cannot access this api" });
     }
   };
-
   get_images = async (req, res) => {
     const { id } = req.userInfo;
 
@@ -123,7 +109,6 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   get_recent_news = async (req, res) => {
     try {
       const news = await newsModel
@@ -136,7 +121,6 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   get_category_news = async (req, res) => {
     const { category } = req.params;
 
@@ -160,7 +144,6 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   news_search = async (req, res) => {
     const { value } = req.query;
     try {
@@ -172,52 +155,6 @@ class NewsController {
       });
       return res.status(201).json({ news });
     } catch (error) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  };
-
-  add_image = async (req, res) => {
-    console.log("add image called");
-
-    const form = formidable({ multiples: false, keepExtensions: true });
-
-    cloudinary.config({
-      cloud_name: process.env.cloud_name,
-      api_key: process.env.api_key,
-      api_secret: process.env.api_secret,
-      secure: true,
-    });
-
-    try {
-      const files = await new Promise((resolve, reject) => {
-        form.parse(req, (err, fields, files) => {
-          if (err) reject(err);
-          else resolve(files);
-        });
-      });
-
-      const imageFile = files.images;
-
-      if (!imageFile || !imageFile.filepath) {
-        console.log("Invalid file:", imageFile);
-        return res
-          .status(400)
-          .json({ message: "No file provided or invalid file path" });
-      }
-
-      const uploadResult = await cloudinary.uploader.upload(
-        imageFile.filepath,
-        {
-          folder: "news-app",
-        }
-      );
-
-      return res.status(201).json({
-        url: uploadResult.secure_url,
-        message: "Image uploaded successfully",
-      });
-    } catch (error) {
-      console.error("Upload error:", error.message);
       return res.status(500).json({ message: "Internal server error" });
     }
   };
@@ -239,7 +176,6 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   get_dashboard_single_news = async (req, res) => {
     const { news_id } = req.params;
     try {
@@ -301,7 +237,6 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   get_news = async (req, res) => {
     const { slug } = req.params;
 
@@ -338,7 +273,6 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   get_popular_news = async (req, res) => {
     console.log("asdsa");
     try {
@@ -365,7 +299,6 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   get_images = async (req, res) => {
     try {
       const images = await newsModel.aggregate([

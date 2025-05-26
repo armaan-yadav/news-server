@@ -3,7 +3,7 @@ import newsModels from "../models/news.models.js";
 class CategoriesControllers {
   get_categories = async (req, res) => {
     try {
-      const categories = await newsModel.aggregate([
+      const categories = await newsModels.aggregate([
         {
           $group: {
             _id: "$category",

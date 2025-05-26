@@ -5,9 +5,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.cloud_name,
+  api_key: process.env.api_key,
+  api_secret: process.env.api_secret,
 });
 
 export const uploadOnCloudinary = async (localFilePath, folder = "images") => {
@@ -15,7 +15,7 @@ export const uploadOnCloudinary = async (localFilePath, folder = "images") => {
     if (!localFilePath) return null;
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
-      folder: `news-app${folder}`,
+      folder: `news-app/${folder}`,
     });
     fs.unlinkSync(localFilePath);
     return response.secure_url;

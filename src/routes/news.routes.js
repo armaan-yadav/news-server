@@ -3,6 +3,7 @@ import newsControllers from "../controllers/news.controllers.js";
 import authMiddleware from "../middlewares/auth.middlewares.js";
 import upload from "../middlewares/multer.middlewares.js";
 import categoriesControllers from "../controllers/categories.controllers.js";
+import imageControllers from "../controllers/image.controllers.js";
 
 const router = Router();
 
@@ -24,7 +25,13 @@ router.post(
   "/api/images/add",
   authMiddleware.auth,
   upload.single("file"),
-  newsControllers.add_image
+  imageControllers.add_image
+);
+router.post(
+  "/api/images/jodit/add",
+  authMiddleware.auth,
+  upload.single("files[0]"),
+  imageControllers.add_image_jodit
 );
 
 router.get(
