@@ -1,17 +1,19 @@
-import express from "express";
-import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
 import morgan from "morgan";
-import db_connect from "./src/utils/db.js";
+import NodeCache from "node-cache";
 import authRoutes from "./src/routes/auth.routes.js";
 import newsRoute from "./src/routes/news.routes.js";
+import db_connect from "./src/utils/db.js";
 
 dotenv.config();
 
 const app = express();
 
-// todo implement nodecache
+export const nodeCache = new NodeCache();
+
 app.use(bodyParser.json());
 app.use(morgan("dev"));
 

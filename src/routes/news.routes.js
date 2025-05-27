@@ -37,12 +37,30 @@ router.post(
 router.get(
   "/api/news",
   authMiddleware.auth,
-  newsControllers.get_dashboard_news
+  newsControllers.get_paginated_news
 );
+router.get("/stats", authMiddleware.auth, newsControllers.get_news_stats);
+
 router.get(
   "/api/news/:news_id",
   authMiddleware.auth,
   newsControllers.get_dashboard_single_news
+);
+router.delete(
+  "/api/news/delete/:news_id",
+  authMiddleware.auth,
+  newsControllers.delete_news
+);
+
+router.post(
+  "/api/category/add",
+  authMiddleware.auth,
+  categoriesControllers.add_category
+);
+router.delete(
+  "/api/category/delete/:categoryId",
+  authMiddleware.auth,
+  categoriesControllers.delete_category
 );
 
 // website
@@ -52,7 +70,10 @@ router.get("/api/latest/news", newsControllers.get_latest_news);
 router.get("/api/images/news", newsControllers.get_images);
 router.get("/api/recent/news", newsControllers.get_recent_news);
 router.get("/api/news/details/:slug", newsControllers.get_news);
-router.get("/api/category/all", categoriesControllers.get_categories);
+router.get(
+  "/api/category/all-stats",
+  categoriesControllers.get_categories_with_stats
+);
 router.get("/api/category/news/:category", newsControllers.get_category_news);
 router.get("/api/search/news", newsControllers.news_search);
 

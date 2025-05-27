@@ -1,10 +1,10 @@
-import { v2 as cloudinary } from "cloudinary";
 import { formidable } from "formidable";
 import moment from "moment";
 import mongoose from "mongoose";
+import { nodeCache } from "../../server.js";
 import galleryModel from "../models/gallery.models.js";
 import newsModel from "../models/news.models.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import categoryModel from "../models/category.models.js";
 
 const { ObjectId } = mongoose.mongo;
 
@@ -28,6 +28,8 @@ class NewsController {
         writerName: name,
         image: image[0].trim(),
       });
+            nodeCache.del("categories_with_news_count");
+      nodeCache.del("category_names");
       console.log(news);
       return res.status(201).json({ message: "news add success", news });
     } catch (error) {
@@ -39,28 +41,9 @@ class NewsController {
     const { news_id } = req.params;
     const form = formidable({});
 
-    cloudinary.config({
-      cloud_name: process.env.cloud_name,
-      api_key: process.env.api_key,
-      api_secret: process.env.api_secret,
-      secure: true,
-    });
-
     try {
-      const [fields, files] = await form.parse(req);
-      const { title, description } = fields;
-      let url = fields.old_image[0];
-
-      if (Object.keys(files).length > 0) {
-        const spliteImage = url.split("/");
-        const imagesFile = spliteImage[spliteImage.length - 1].split(".")[0];
-        await cloudinary.uploader.destroy(imagesFile);
-        const data = await cloudinary.uploader.upload(
-          files.new_image[0].filepath,
-          { folder: "news_images" }
-        );
-        url = data.url;
-      }
+      const [fields] = await form.parse(req);
+      const { title, description, subTitle, category, image } = fields;
 
       const news = await newsModel.findByIdAndUpdate(
         news_id,
@@ -68,11 +51,15 @@ class NewsController {
           title: title[0].trim(),
           slug: title[0].trim().split(" ").join("-"),
           description: description[0],
-          image: url,
+          image: image[0].trim(),
+          subTitle: subTitle[0].trim(),
+          category: category[0].trim(),
         },
         { new: true }
       );
-
+      nodeCache.del("news");
+            nodeCache.del("categories_with_news_count");
+      nodeCache.del("category_names");
       return res.status(200).json({ message: "news update success", news });
     } catch (error) {
       console.log(error);
@@ -90,6 +77,7 @@ class NewsController {
         { status },
         { new: true }
       );
+      nodeCache.del("news");
       return res
         .status(200)
         .json({ message: "news status update success", news });
@@ -158,21 +146,127 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
   get_dashboard_news = async (req, res) => {
-    const { id, role } = req.userInfo;
+    console.log("first");
+    if (nodeCache.has("news")) {
+      const news = nodeCache.get("news");
+      return res.status(200).json({ news });
+    }
     try {
-      if (role === "admin") {
-        const news = await newsModel.find({}).sort({ createdAt: -1 });
-        return res.status(200).json({ news });
-      } else {
-        const news = await newsModel
-          .find({ writerId: new ObjectId(id) })
-          .sort({ createdAt: -1 });
-        return res.status(200).json({ news });
-      }
+      const news = await newsModel.find({}).sort({ createdAt: -1 });
+      nodeCache.set("news", news);
+      return res.status(200).json({ news });
     } catch (error) {
       console.log(error.message);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  };
+  get_paginated_news = async (req, res) => {
+    console.log("Fetching dashboard news with pagination");
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const search = req.query.search || "";
+    const status = req.query.status || "";
+
+    const cacheKey = `news_page_${page}_limit_${limit}_search_${search}_status_${status}`;
+
+    if (nodeCache.has(cacheKey)) {
+      const cachedData = nodeCache.get(cacheKey);
+      return res.status(200).json(cachedData);
+    }
+
+    try {
+      let query = {};
+
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } },
+        ];
+      }
+
+      if (status && status !== "all") {
+        query.status = status;
+      }
+
+      const totalNews = await newsModel.countDocuments(query);
+
+      const news = await newsModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .populate("category");
+
+      const totalPages = Math.ceil(totalNews / limit);
+      const hasNextPage = page < totalPages;
+      const hasPrevPage = page > 1;
+
+      const responseData = {
+        news,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems: totalNews,
+          itemsPerPage: limit,
+          hasNextPage,
+          hasPrevPage,
+          nextPage: hasNextPage ? page + 1 : null,
+          prevPage: hasPrevPage ? page - 1 : null,
+        },
+        filters: {
+          search,
+          status,
+        },
+      };
+
+      const cacheTime = search || status ? 180 : 300;
+      // nodeCache.set(cacheKey, responseData, cacheTime);
+
+      return res.status(200).json(responseData);
+    } catch (error) {
+      console.log("Error fetching news:", error.message);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  };
+  get_news_stats = async (req, res) => {
+    const cacheKey = "news_stats";
+
+    if (nodeCache.has(cacheKey)) {
+      const cachedStats = nodeCache.get(cacheKey);
+      return res.status(200).json(cachedStats);
+    }
+
+    try {
+      const stats = await newsModel.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+
+      const totalStats = await newsModel.countDocuments();
+
+      const formattedStats = {
+        total: totalStats,
+        byStatus: stats.reduce((acc, item) => {
+          acc[item._id] = item.count;
+          return acc;
+        }, {}),
+      };
+
+      // Cache stats for 10 minutes
+      nodeCache.set(cacheKey, formattedStats, 600);
+
+      return res.status(200).json(formattedStats);
+    } catch (error) {
+      console.log("Error fetching news stats:", error.message);
       return res.status(500).json({ message: "Internal server error" });
     }
   };
@@ -186,7 +280,16 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
-
+  delete_news = async (req, res) => {
+    try {
+      const { news_id } = req.params;
+      await newsModel.findByIdAndDelete(news_id);
+      return res.status(200).json({ message: "News deleted successfully" });
+    } catch (error) {
+      console.log(error.message);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  };
   // website
   get_all_news = async (req, res) => {
     try {
