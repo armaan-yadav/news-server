@@ -19,5 +19,23 @@ router.get(
   roleMiddleware.role,
   authControllers.get_writers
 );
+router.get(
+  "/api/news/writers/news-count",
+  authMiddleware.auth,
+  roleMiddleware.role,
+  authControllers.get_writer_news_count
+);
+router.get(
+  "/api/news/writers/:writer_id",
+  authMiddleware.auth,
+  roleMiddleware.role,
+  authControllers.get_writer_by_id
+);
+router.put(
+  "/api/news/writers/edit/:writer_id",
+  authMiddleware.auth,
+  roleMiddleware.role,
+  authControllers.edit_writer
+);
 
 export default router;

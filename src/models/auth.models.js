@@ -23,9 +23,9 @@ const authSchema = new Schema(
       type: String,
       default: "",
     },
-    category: {
-      type: String,
-      required: true,
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true }

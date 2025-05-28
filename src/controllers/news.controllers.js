@@ -28,7 +28,7 @@ class NewsController {
         writerName: name,
         image: image[0].trim(),
       });
-            nodeCache.del("categories_with_news_count");
+      nodeCache.del("categories_with_news_count");
       nodeCache.del("category_names");
       console.log(news);
       return res.status(201).json({ message: "news add success", news });
@@ -58,7 +58,7 @@ class NewsController {
         { new: true }
       );
       nodeCache.del("news");
-            nodeCache.del("categories_with_news_count");
+      nodeCache.del("categories_with_news_count");
       nodeCache.del("category_names");
       return res.status(200).json({ message: "news update success", news });
     } catch (error) {
@@ -170,8 +170,9 @@ class NewsController {
 
     const search = req.query.search || "";
     const status = req.query.status || "";
+    const writerId = req.query.writerId || "";
 
-    const cacheKey = `news_page_${page}_limit_${limit}_search_${search}_status_${status}`;
+    const cacheKey = `news_page_${page}_limit_${limit}_search_${search}_status_${status}_writerId_${writerId}`;
 
     if (nodeCache.has(cacheKey)) {
       const cachedData = nodeCache.get(cacheKey);
@@ -192,6 +193,10 @@ class NewsController {
         query.status = status;
       }
 
+      if (writerId) {
+        query.writerId = writerId;
+      }
+
       const totalNews = await newsModel.countDocuments(query);
 
       const news = await newsModel
@@ -200,7 +205,8 @@ class NewsController {
         .skip(skip)
         .limit(limit)
         .lean()
-        .populate("category");
+        .populate("category")
+        .populate("writerId", "name email"); // Populating writer details
 
       const totalPages = Math.ceil(totalNews / limit);
       const hasNextPage = page < totalPages;
@@ -221,10 +227,11 @@ class NewsController {
         filters: {
           search,
           status,
+          writerId,
         },
       };
 
-      const cacheTime = search || status ? 180 : 300;
+      const cacheTime = search || status || writerId ? 180 : 300;
       // nodeCache.set(cacheKey, responseData, cacheTime);
 
       return res.status(200).json(responseData);
@@ -233,6 +240,7 @@ class NewsController {
       return res.status(500).json({ message: "Internal server error" });
     }
   };
+
   get_news_stats = async (req, res) => {
     const cacheKey = "news_stats";
 
@@ -273,7 +281,9 @@ class NewsController {
   get_dashboard_single_news = async (req, res) => {
     const { news_id } = req.params;
     try {
-      const news = await newsModel.findById(news_id);
+      const news = await newsModel
+        .findById(news_id)
+        .populate("category", "name");
       return res.status(200).json({ news });
     } catch (error) {
       console.log(error.message);

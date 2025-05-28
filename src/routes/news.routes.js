@@ -1,9 +1,9 @@
 import { Router } from "express";
+import categoriesControllers from "../controllers/categories.controllers.js";
+import imageControllers from "../controllers/image.controllers.js";
 import newsControllers from "../controllers/news.controllers.js";
 import authMiddleware from "../middlewares/auth.middlewares.js";
 import upload from "../middlewares/multer.middlewares.js";
-import categoriesControllers from "../controllers/categories.controllers.js";
-import imageControllers from "../controllers/image.controllers.js";
 
 const router = Router();
 

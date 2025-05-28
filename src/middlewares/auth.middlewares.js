@@ -2,31 +2,34 @@ import jwt from "jsonwebtoken";
 
 class AuthMiddleware {
   async auth(req, res, next) {
-    console.log("auth middleware");
-
+    console.log("auth middleware called");
     const { authorization } = req.headers;
 
-    if (authorization) {
-      const token = authorization.split("Bearer ")[1];
+    if (!authorization || !authorization.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized - No token provided" });
+    }
 
-      if (token) {
-        try {
-          const userInfo = await jwt.verify(token, process.env.secret);
-          req.userInfo = userInfo;
-          next();
-        } catch (error) {
-          console.log(error);
-          return res.status(401).json({ message: "Unauthorized" });
-        }
-      } else {
-        return res.status(401).json({ message: "Unauthorized" });
+    const token = authorization.split(" ")[1];
+    
+
+    try {
+      const userInfo = jwt.verify(token, process.env.secret);
+
+      if (!userInfo?.isActive) {
+        return res
+          .status(403)
+          .json({ message: "Access denied - Inactive account" });
       }
-    } else {
-      return res.status(401).json({ message: "Unauthorized" });
+
+      req.userInfo = userInfo;
+      next();
+    } catch (error) {
+      console.error("JWT error:", error);
+      return res.status(401).json({ message: "Unauthorized - Invalid token" });
     }
   }
 }
 
-const authMiddleware = new AuthMiddleware();
-
-export default authMiddleware;
+export default new AuthMiddleware();
