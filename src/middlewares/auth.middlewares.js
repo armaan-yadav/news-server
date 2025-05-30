@@ -12,7 +12,6 @@ class AuthMiddleware {
     }
 
     const token = authorization.split(" ")[1];
-    
 
     try {
       const userInfo = jwt.verify(token, process.env.secret);

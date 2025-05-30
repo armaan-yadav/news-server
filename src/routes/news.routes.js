@@ -39,6 +39,7 @@ router.get(
   authMiddleware.auth,
   newsControllers.get_paginated_news
 );
+
 router.get("/stats", authMiddleware.auth, newsControllers.get_news_stats);
 
 router.get(

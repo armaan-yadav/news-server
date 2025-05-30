@@ -31,7 +31,6 @@ const newsSchema = new Schema(
       ref: "Category",
       required: true,
     },
-
     description: {
       type: String,
       default: "",
@@ -52,16 +51,23 @@ const newsSchema = new Schema(
   { timestamps: true }
 );
 
+newsSchema.index({ category: 1, status: 1, createdAt: -1 });
+
+newsSchema.index({ status: 1, createdAt: -1 });
+newsSchema.index({ slug: 1 });
+newsSchema.index({ writerId: 1 });
+
 newsSchema.index(
   {
     title: "text",
-    category: "text",
     description: "text",
   },
   {
-    title: 5,
-    description: 4,
-    category: 2,
+    weights: {
+      title: 5,
+      description: 4,
+    },
+    name: "text_search_index",
   }
 );
 
