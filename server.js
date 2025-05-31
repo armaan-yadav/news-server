@@ -5,8 +5,9 @@ import express from "express";
 import morgan from "morgan";
 import NodeCache from "node-cache";
 import authRoutes from "./src/routes/auth.routes.js";
-import newsRoute from "./src/routes/news.routes.js";
+import newsRoutes from "./src/routes/news.routes.js";
 import db_connect from "./src/utils/db.js";
+import videoRouter from "./src/routes/video.routes.js";
 
 dotenv.config();
 
@@ -22,13 +23,30 @@ if (process.env.mode === "production") {
 } else {
   app.use(
     cors({
-      origin: ["http://localhost:5173", "http://localhost:3000"],
+      origin: [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+      ],
     })
   );
 }
 
+function logTime(req, res, next) {
+  const now = new Date();
+  const hours = now.getHours().toString().padStart(2, "0");
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  const seconds = now.getSeconds().toString().padStart(2, "0");
+
+  console.log(
+    `⏰ [${hours} : ${minutes} : ${seconds}] ${req.method} ${req.originalUrl}`
+  );
+  next();
+}
 app.use("/", authRoutes);
-app.use("/", newsRoute);
+app.use("/", logTime, newsRoutes);
+app.use("/", logTime, videoRouter);
 
 app.get("/", (req, res) => res.send("Hello World!"));
 

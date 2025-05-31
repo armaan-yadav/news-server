@@ -151,7 +151,7 @@ class NewsController {
       const step1Start = Date.now();
 
       const categoryDoc = await categoryModel
-        .findOne({ slug: category })
+        .findOne({ name: category })
         .select("_id")
         .lean();
 
@@ -399,16 +399,29 @@ class NewsController {
   //   try {
   //     const category_news = await newsModel.aggregate([
   //       {
-  //         $sort: { createdAt: -1 },
-  //       },
-  //       {
   //         $match: {
   //           status: "active",
   //         },
   //       },
   //       {
+  //         $sort: { createdAt: -1 },
+  //       },
+  //       {
+  //         $lookup: {
+  //           from: "categories",
+  //           localField: "category",
+  //           foreignField: "_id",
+  //           as: "categoryDetails",
+  //         },
+  //       },
+  //       { $unwind: "$categoryDetails" },
+
+  //       {
   //         $group: {
-  //           _id: "$category",
+  //           _id: {
+  //             category_id: "$categoryDetails._id",
+  //             categoryName: "$categoryDetails.name",
+  //           },
   //           news: {
   //             $push: {
   //               _id: "$_id",
@@ -418,42 +431,49 @@ class NewsController {
   //               image: "$image",
   //               description: "$description",
   //               date: "$date",
-  //               category: "$category",
+  //               category: "$categoryDetails",
   //             },
   //           },
   //         },
   //       },
   //       {
   //         $project: {
+  //           category_id: "$_id.category_id",
+  //           categoryName: "$_id.categoryName",
+  //           news: { $slice: ["$news", 5] },
   //           _id: 0,
-  //           category: "$_id",
-  //           news: {
-  //             $slice: ["$news", 5],
-  //           },
   //         },
   //       },
   //     ]);
 
-  //     const news = {};
-  //     for (let i = 0; i < category_news.length; i++) {
-  //       news[category_news[i].category] = category_news[i].news;
-  //     }
-  //     return res.status(200).json({ news });
+  //     const formatted = {};
+  //     category_news.forEach((item) => {
+  //       formatted[item.categoryName] = item.news;
+  //     });
+
+  //     return res.status(200).json(formatted);
   //   } catch (error) {
-  //     console.log(error.message);
+  //     console.error(error.message);
   //     return res.status(500).json({ message: "Internal server error" });
   //   }
   // };
   get_all_news = async (req, res) => {
     try {
+      const cacheKey = "all_category_news";
+
+      // Try to get data from cache first
+      const cachedData = nodeCache.get(cacheKey);
+      if (cachedData) {
+        console.log("Serving from cache");
+        return res.status(200).json(cachedData);
+      }
+
+      console.log("Fetching from database");
       const category_news = await newsModel.aggregate([
         {
           $match: {
             status: "active",
           },
-        },
-        {
-          $sort: { createdAt: -1 },
         },
         {
           $lookup: {
@@ -464,7 +484,12 @@ class NewsController {
           },
         },
         { $unwind: "$categoryDetails" },
-
+        {
+          $sort: {
+            "categoryDetails._id": 1, // Sort by category first for better grouping
+            createdAt: -1,
+          },
+        },
         {
           $group: {
             _id: {
@@ -480,14 +505,16 @@ class NewsController {
                 image: "$image",
                 description: "$description",
                 date: "$date",
-                category: "$categoryDetails",
+                category: {
+                  _id: "$categoryDetails._id",
+                  name: "$categoryDetails.name",
+                },
               },
             },
           },
         },
         {
           $project: {
-            category_id: "$_id.category_id",
             categoryName: "$_id.categoryName",
             news: { $slice: ["$news", 5] },
             _id: 0,
@@ -495,10 +522,15 @@ class NewsController {
         },
       ]);
 
-      const formatted = {};
-      category_news.forEach((item) => {
-        formatted[item.categoryName] = item.news;
-      });
+      // More efficient object creation using reduce
+      const formatted = category_news.reduce((acc, item) => {
+        acc[item.categoryName] = item.news;
+        return acc;
+      }, {});
+
+      // Store in cache
+      nodeCache.set(cacheKey, formatted);
+      console.log("Data cached successfully");
 
       return res.status(200).json(formatted);
     } catch (error) {
@@ -564,7 +596,8 @@ class NewsController {
       const news = await newsModel
         .find({ status: "active" })
         .sort({ createdAt: -1 })
-        .limit(6);
+        .limit(6)
+        .populate("category", "name");
 
       return res.status(200).json({ news });
     } catch (error) {

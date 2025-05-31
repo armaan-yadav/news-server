@@ -70,5 +70,4 @@ newsSchema.index(
     name: "text_search_index",
   }
 );
-
 export default model("news", newsSchema);

@@ -1,21 +1,18 @@
 import { model, Schema } from "mongoose";
 
-const categorySchema = new Schema(
+const ytSchema = new Schema(
   {
-    name: {
+    videoId: {
       type: String,
       required: true,
       unique: true,
-      trim: true,
     },
-    slug: {
+    title: {
       type: String,
       required: true,
-      unique: true,
     },
   },
   { timestamps: true }
 );
 
-
-export default model("Category", categorySchema);
+export default model("ytVideo", ytSchema);
