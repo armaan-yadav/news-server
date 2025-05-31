@@ -101,11 +101,18 @@ class NewsController {
     try {
       const news = await newsModel
         .find({ status: "active" })
+        .select(
+          "writerId writerName title subTitle slug image category date createdAt"
+        )
         .sort({ createdAt: -1 })
         .skip(6)
-        .limit(6);
-      return res.status(201).json({ news });
+        .limit(6)
+        .lean()
+        .exec();
+
+      return res.status(200).json({ news });
     } catch (error) {
+      console.error("Error fetching recent news:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   };
